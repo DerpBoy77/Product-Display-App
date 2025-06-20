@@ -1,12 +1,11 @@
 import streamlit as st
 from utils import load_data, add_product_to_db, upload_image_to_supabase
 
-st.set_page_config(page_title="Add New Product", page_icon="➕")
+st.set_page_config(page_title="Add New Product", page_icon="📦", layout="centered")
 
 def add_product_page():
     st.title("Add New Product")
 
-    # Load data to check for ID uniqueness (from Supabase via load_data)
     df = load_data()
 
     with st.form("new_product_form", clear_on_submit=True):
@@ -14,7 +13,7 @@ def add_product_page():
 
         product_id = st.text_input("Product ID (Unique Identifier)*", help="e.g., PROD001, ITEM_XYZ").strip()
         mould_no = st.text_input("Mould Number").strip()
-        description = st.text_area("Description").strip()
+        description = st.text_area("Description", height=68).strip()
 
         weight_pp = st.number_input("Weight PP (grams)", min_value=0.0, format="%.2f", value=0.0)
         weight_hip = st.number_input("Weight HIP (grams)", min_value=0.0, format="%.2f", value=0.0)
@@ -22,7 +21,7 @@ def add_product_page():
         uploaded_image = st.file_uploader("Upload Product Image (Optional)", type=["jpg", "jpeg", "png"])
         
         st.markdown("---")
-        submitted = st.form_submit_button("Add Product")
+        submitted = st.form_submit_button("Add Product", type="primary")
 
         if submitted:
             # Basic validation
@@ -49,7 +48,6 @@ def add_product_page():
                     'image_url': image_url_to_save
                 }
                 
-                # --- CHANGE HERE: Call the new DB add function ---
                 if add_product_to_db(new_product_data):
                     st.success(f"Product '{product_id}' added successfully to Supabase!")
                 else:

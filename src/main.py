@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-
-# Import the new DB functions from utils
 from utils import load_data, delete_product_from_db
 
 st.set_page_config(page_title="Product List", page_icon="📦", layout="centered")
@@ -9,7 +7,6 @@ st.set_page_config(page_title="Product List", page_icon="📦", layout="centered
 
 # Function to delete a product and manage state/rerun (NOW from Supabase)
 def delete_product_and_clear_state(product_id_to_delete):
-    # No need to load all data just to delete, as DB function handles it
     if delete_product_from_db(product_id_to_delete):
         st.success(f"Product with ID '{product_id_to_delete}' deleted successfully from Supabase!")
     else:
@@ -31,7 +28,7 @@ def display_products():
             st.warning(f"Are you sure you want to delete product: **{st.session_state['confirm_delete_id']}**?")
             col_confirm_yes, col_confirm_no = st.columns(2)
             with col_confirm_yes:
-                if st.button("Yes, Delete", key="confirm_yes_top"):
+                if st.button("Yes, Delete", key="confirm_yes_top", type="primary"):
                     delete_product_and_clear_state(st.session_state['confirm_delete_id'])
             with col_confirm_no:
                 if st.button("No, Cancel", key="confirm_no_top"):
@@ -41,7 +38,7 @@ def display_products():
                         del st.session_state['confirm_delete_id']
                     st.rerun()
 
-    df = load_data() # Loads from Supabase now
+    df = load_data()
 
     if df.empty:
         st.info("No products found. Please add some products using the 'Add New Product' page.")
@@ -65,11 +62,9 @@ def display_products():
             col1, col2, col3 = st.columns([1, 2, 0.5])
 
             with col1:
-                # Use the image_url directly, which will be a public Supabase Storage URL
                 image_url = row['image_url'] if pd.notna(row['image_url']) and row['image_url'].strip() else None
                 
                 if image_url:
-                    # Fetch and resize the image
                     resized_image = image_url #resize_image(image_url, size=(200, 200))
                     st.image(resized_image, caption=f"ID: {row['id']}")
                 else:

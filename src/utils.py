@@ -81,10 +81,8 @@ def resize_image(image_bytes, size=(200, 200)):
     and returns a PIL Image object.
     """
     try:
-        # Open the image from bytes using an in-memory stream
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Convert to RGB to handle different image modes like RGBA or P
         image = image.convert("RGB")
 
         image = image.resize(size)
@@ -105,17 +103,14 @@ def upload_image_to_supabase(uploaded_file, product_id):
     if uploaded_file is None:
         return ""
 
-    # Get the bytes from the uploaded file
     image_bytes = uploaded_file.getvalue()
 
-    # 1. Resize the image (returns a PIL Image object)
     resized_image_obj = resize_image(image_bytes)
 
     if resized_image_obj is None:
         st.error("Failed to resize image, upload cancelled.")
         return ""
 
-    # 2. Convert the resized PIL Image object back to bytes for uploading
     with io.BytesIO() as buffer:
         # Save the image to the buffer. 'JPEG' is efficient for photos.
         # Use format='PNG' if you need transparency.
@@ -123,18 +118,14 @@ def upload_image_to_supabase(uploaded_file, product_id):
         image_bytes_to_upload = buffer.getvalue()
 
     try:
-        # Create a unique filename for the new resized image
-        # Using a consistent extension (.jpg) because we converted to RGB/JPEG
         unique_filename = f"{product_id.replace(' ', '_').lower()}-{uuid.uuid4()}.jpg"
         
-        # 3. Upload the final image bytes
         res = supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=unique_filename,
             file=image_bytes_to_upload,
             file_options={"content-type": "image/jpeg"} # Match the format saved
         )
         
-        # Get the public URL for the newly uploaded file
         public_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(unique_filename)
         
         st.success(f"Image uploaded successfully!")

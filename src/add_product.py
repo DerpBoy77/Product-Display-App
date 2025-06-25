@@ -19,7 +19,7 @@ def add_product_page():
         hook = st.selectbox("Hook", options=["Plastic", "Metal"]).strip()
         cavaties = st.number_input("Cavities", min_value=1, max_value=100, value=1, step=1)
         part_wt = st.number_input("Part Weight (g)", min_value=0.0, value=0.0, step=0.1)
-        short_wt = st.number_input("Short Weight (g)", min_value=0.0, value=0.0, step=0.1)
+        short_wt = st.number_input("Shot Weight (g)", min_value=0.0, value=0.0, step=0.1)
 
         uploaded_image = st.file_uploader("Upload Product Image (Optional)", type=["jpg", "jpeg", "png"])
         

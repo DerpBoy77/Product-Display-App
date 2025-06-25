@@ -80,7 +80,7 @@ def display_products():
             with col3:
                 st.write(f"**Cavities:** {row['cavaties']}")
                 st.write(f"**Part Weight:** {row['part_wt']} g")
-                st.write(f"**Short Weight:** {row['short_wt']} g")
+                st.write(f"**Shot Weight:** {row['short_wt']} g")
 
             with col4:
                 delete_button_key = f"delete_button_{row['id']}"

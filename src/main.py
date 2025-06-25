@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils import load_data, delete_product_from_db
 
-st.set_page_config(page_title="Product List", page_icon="📦", layout="centered")
+st.set_page_config(page_title="Product List", page_icon="📦", layout="wide")
 
 
 # Function to delete a product and manage state/rerun (NOW from Supabase)
@@ -44,7 +44,7 @@ def display_products():
         st.info("No products found. Please add some products using the 'Add New Product' page.")
         return
 
-    search_query = st.text_input("Search products (ID, Mould No., Description)", "").lower()
+    search_query = st.text_input("Search products (ID, Mould No., Description ...)", "").lower()
 
     if search_query:
         # Ensure that you're converting to string and handling NaN values
@@ -59,7 +59,7 @@ def display_products():
     else:
         for index, row in df_filtered.iterrows():
             st.subheader(f"Product ID: {row['id']}")
-            col1, col2, col3 = st.columns([1, 2, 0.5])
+            col1, col2, col3, col4 = st.columns([1, 1, 1, 0.5])
 
             with col1:
                 image_url = row['image_url'] if pd.notna(row['image_url']) and row['image_url'].strip() else None
@@ -73,11 +73,16 @@ def display_products():
             
             with col2:
                 st.write(f"**Mould No.:** {row['mould_no']}")
+                st.write(f"**Location:** {row['location']}")
+                st.write(f"**Hook:** {row['hook']}") 
                 st.write(f"**Description:** {row['description']}")
-                st.write(f"**Weight PP:** {row['weight_pp']} g")
-                st.write(f"**Weight HIP:** {row['weight_hip']} g")
-
+            
             with col3:
+                st.write(f"**Cavities:** {row['cavaties']}")
+                st.write(f"**Part Weight:** {row['part_wt']} g")
+                st.write(f"**Short Weight:** {row['short_wt']} g")
+
+            with col4:
                 delete_button_key = f"delete_button_{row['id']}"
                 if st.button("Delete", key=delete_button_key):
                     st.session_state['confirm_delete_id'] = row['id']

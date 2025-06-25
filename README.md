@@ -30,5 +30,3 @@ This application is a full-stack project utilizing modern, open-source technolog
     * **Supabase Storage** for efficient storage and retrieval of product images.
     * **Row Level Security (RLS)** is configured on both the database and storage to manage access permissions.
 * **Image Processing:** Python's **Pillow (PIL)** library is used server-side to standardize image sizes during upload, ensuring a consistent display across all product photos.
-
-## 📦 Project Structure

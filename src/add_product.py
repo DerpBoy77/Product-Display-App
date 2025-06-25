@@ -15,8 +15,11 @@ def add_product_page():
         mould_no = st.text_input("Mould Number").strip()
         description = st.text_area("Description", height=68).strip()
 
-        weight_pp = st.number_input("Weight PP (grams)", min_value=0.0, format="%.2f", value=0.0)
-        weight_hip = st.number_input("Weight HIP (grams)", min_value=0.0, format="%.2f", value=0.0)
+        location = st.text_input("Location", help="Rack").strip()
+        hook = st.selectbox("Hook", options=["Plastic", "Metal"]).strip()
+        cavaties = st.number_input("Cavities", min_value=1, max_value=100, value=1, step=1)
+        part_wt = st.number_input("Part Weight (g)", min_value=0.0, value=0.0, step=0.1)
+        short_wt = st.number_input("Short Weight (g)", min_value=0.0, value=0.0, step=0.1)
 
         uploaded_image = st.file_uploader("Upload Product Image (Optional)", type=["jpg", "jpeg", "png"])
         
@@ -39,13 +42,16 @@ def add_product_page():
                     else:
                         st.warning("Failed to upload image to Supabase Storage. Product will be added without an image URL.")
                 
-                new_product_data = { # Prepare data for Supabase insert
+                new_product_data = { 
                     'id': product_id,
                     'mould_no': mould_no,
                     'description': description,
-                    'weight_pp': float(weight_pp), # Ensure numeric types for DB
-                    'weight_hip': float(weight_hip), # Ensure numeric types for DB
-                    'image_url': image_url_to_save
+                    'image_url': image_url_to_save,
+                    'location': location,
+                    'hook': hook,
+                    'cavaties': int(cavaties),
+                    'part_wt': round(float(part_wt), 2),
+                    'short_wt': round(float(short_wt), 2)
                 }
                 
                 if add_product_to_db(new_product_data):

@@ -31,7 +31,7 @@ def load_data():
         if response.data:
             df = pd.DataFrame(response.data)
             # Ensure columns are in the expected order and types if needed
-            expected_cols = ['id', 'mould_no', 'description', 'weight_pp', 'weight_hip', 'image_url']
+            expected_cols = ['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt']
             for col in expected_cols:
                 if col not in df.columns:
                     df[col] = '' # Add missing columns
@@ -40,10 +40,10 @@ def load_data():
         else:
             # Return an empty DataFrame if no data found
             st.info("No products found in the database.")
-            return pd.DataFrame(columns=['id', 'mould_no', 'description', 'weight_pp', 'weight_hip', 'image_url'])
+            return pd.DataFrame(columns=['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt'])
     except Exception as e:
         st.error(f"Error loading data from Supabase: {e}. Please check your database connection and RLS policies.")
-        return pd.DataFrame(columns=['id', 'mould_no', 'description', 'weight_pp', 'weight_hip', 'image_url'])
+        return pd.DataFrame(columns=['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt'])
 
 # --- NEW: Function to add a product to Supabase ---
 def add_product_to_db(product_data: dict):

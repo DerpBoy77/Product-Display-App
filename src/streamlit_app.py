@@ -11,6 +11,11 @@ pages = [
         "add_product.py",
         title="Add Product",
         icon=":material/add:",
+    ),
+    st.Page(
+        "update_product.py",
+        title="Update Product",
+        icon=":material/edit:",
     )
 ]
 

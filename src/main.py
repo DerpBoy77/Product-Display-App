@@ -59,7 +59,7 @@ def display_products():
     else:
         for index, row in df_filtered.iterrows():
             st.subheader(f"Product ID: {row['id']}")
-            col1, col2, col3, col4 = st.columns([1, 1, 1, 0.5])
+            col1, col2, col3, col4 = st.columns([1, 1, 1, 0.8])
 
             with col1:
                 image_url = row['image_url'] if pd.notna(row['image_url']) and row['image_url'].strip() else None
@@ -84,6 +84,15 @@ def display_products():
 
             with col4:
                 delete_button_key = f"delete_button_{row['id']}"
+                update_button_key = f"update_button_{row['id']}"
+                
+                # Update button
+                if st.button("Update", key=update_button_key, type="secondary"):
+                    # Set query params and switch page
+                    st.session_state["product_id"] = row['id']
+                    st.switch_page("update_product.py")
+                
+                # Delete button
                 if st.button("Delete", key=delete_button_key):
                     st.session_state['confirm_delete_id'] = row['id']
                     st.session_state['show_confirm_dialog'] = True

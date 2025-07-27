@@ -73,6 +73,32 @@ def delete_product_from_db(product_id: str):
         st.error(f"Error deleting product from Supabase: {e}")
         return False
 
+# --- NEW: Function to update a product in Supabase ---
+def update_product_in_db(product_id: str, product_data: dict):
+    try:
+        response = supabase.table('products').update(product_data).eq('id', product_id).execute()
+        if response.data:
+            st.cache_data.clear() # Clear cache to fetch updated data on next load
+            return True
+        else:
+            st.error(f"Failed to update product: {response.json()}")
+            return False
+    except Exception as e:
+        st.error(f"Error updating product in Supabase: {e}")
+        return False
+
+# --- NEW: Function to get a single product from Supabase ---
+def get_product_by_id(product_id: str):
+    try:
+        response = supabase.table('products').select('*').eq('id', product_id).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        else:
+            return None
+    except Exception as e:
+        st.error(f"Error fetching product from Supabase: {e}")
+        return None
+
 
 # --- Corrected Helper Function to Resize Image ---
 def resize_image(image_bytes, size=(200, 200)):

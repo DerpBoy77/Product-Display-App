@@ -1,164 +1,213 @@
+
 import streamlit as st
 import pandas as pd
 import uuid
-from supabase import create_client, Client
+import sqlite3
 from PIL import Image
 import io
+import os
 
-# --- Supabase Configuration (from .streamlit/secrets.toml) ---
-try:
-    SUPABASE_URL = st.secrets["supabase_url"]
-    SUPABASE_ANON_KEY = st.secrets["supabase_anon_key"]
-    # Initialize Supabase client
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-    SUPABASE_BUCKET_NAME = "product-images" # Your Supabase Storage bucket name
-except KeyError:
-    st.error("Supabase credentials not found in .streamlit/secrets.toml. Please set them up.")
-    st.stop()
-except Exception as e:
-    st.error(f"Error initializing Supabase client: {e}")
-    st.stop()
+# --- SQLite Configuration ---
+DB_PATH = os.path.join(os.path.dirname(__file__), '../data/products.db')
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), '../data/images')
+os.makedirs(IMAGES_DIR, exist_ok=True)
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10.0)
+    conn.row_factory = sqlite3.Row
+    # Enable foreign key constraints for data integrity
+    conn.execute("PRAGMA foreign_keys = ON")
+    # Set secure file permissions on database file
+    try:
+        os.chmod(DB_PATH, 0o600)  # Owner read/write only
+    except (OSError, FileNotFoundError):
+        pass  # File might not exist yet
+    return conn
+
+# --- Initialize DB if not exists ---
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        mould_no TEXT,
+        description TEXT,
+        image_url TEXT,
+        location TEXT,
+        hook TEXT,
+        cavaties INTEGER,
+        part_wt REAL,
+        short_wt REAL
+    )''')
+    conn.commit()
+    conn.close()
+init_db()
 
 
-# Function to load data (NOW from Supabase)
+
+# Function to load data from SQLite
 @st.cache_data(ttl=3600)
 def load_data():
     try:
-        # Fetch all products from the 'products' table
-        response = supabase.table('products').select('*').execute()
-        
-        # Check for data
-        if response.data:
-            df = pd.DataFrame(response.data)
-            # Ensure columns are in the expected order and types if needed
-            expected_cols = ['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt']
-            for col in expected_cols:
-                if col not in df.columns:
-                    df[col] = '' # Add missing columns
-            df = df[expected_cols] # Reorder columns
-            return df
-        else:
-            # Return an empty DataFrame if no data found
-            st.info("No products found in the database.")
-            return pd.DataFrame(columns=['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt'])
+        conn = get_db_connection()
+        df = pd.read_sql_query("SELECT * FROM products", conn)
+        conn.close()
+        expected_cols = ['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt']
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = ''
+        df = df[expected_cols]
+        return df
     except Exception as e:
-        st.error(f"Error loading data from Supabase: {e}. Please check your database connection and RLS policies.")
+        st.error(f"Error loading data from SQLite: {e}.")
         return pd.DataFrame(columns=['id', 'mould_no', 'description', 'image_url', 'location', 'hook', 'cavaties', 'part_wt', 'short_wt'])
 
-# --- NEW: Function to add a product to Supabase ---
+
+# Function to add a product to SQLite
 def add_product_to_db(product_data: dict):
     try:
-        response = supabase.table('products').insert(product_data).execute()
-        if response.data:
-            st.cache_data.clear() # Clear cache to fetch new data on next load
-            return True
-        else:
-            st.error(f"Failed to add product: {response.json()}")
-            return False
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''INSERT INTO products (id, mould_no, description, image_url, location, hook, cavaties, part_wt, short_wt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (
+                product_data['id'],
+                product_data['mould_no'],
+                product_data['description'],
+                product_data['image_url'],
+                product_data['location'],
+                product_data['hook'],
+                product_data['cavaties'],
+                product_data['part_wt'],
+                product_data['short_wt']
+            )
+        )
+        conn.commit()
+        conn.close()
+        st.cache_data.clear()
+        return True
+    except sqlite3.IntegrityError:
+        st.error("Product ID already exists.")
+        return False
     except Exception as e:
-        st.error(f"Error adding product to Supabase: {e}")
+        st.error(f"Error adding product to SQLite: {e}")
         return False
 
-# --- NEW: Function to delete a product from Supabase ---
+
+# Function to delete a product from SQLite
 def delete_product_from_db(product_id: str):
     try:
-        response = supabase.table('products').delete().eq('id', product_id).execute()
-        if response.data: # Supabase returns data for deleted rows if successful
-            st.cache_data.clear() # Clear cache after deletion
-            return True
-        else:
-            st.error(f"Failed to delete product: {response.json()}")
-            return False
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM products WHERE id = ?", (product_id,))
+        conn.commit()
+        conn.close()
+        st.cache_data.clear()
+        return True
     except Exception as e:
-        st.error(f"Error deleting product from Supabase: {e}")
+        st.error(f"Error deleting product from SQLite: {e}")
         return False
 
-# --- NEW: Function to update a product in Supabase ---
+
+# Function to update a product in SQLite
 def update_product_in_db(product_id: str, product_data: dict):
     try:
-        response = supabase.table('products').update(product_data).eq('id', product_id).execute()
-        if response.data:
-            st.cache_data.clear() # Clear cache to fetch updated data on next load
-            return True
-        else:
-            st.error(f"Failed to update product: {response.json()}")
-            return False
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE products SET mould_no=?, description=?, image_url=?, location=?, hook=?, cavaties=?, part_wt=?, short_wt=? WHERE id=?''',
+            (
+                product_data['mould_no'],
+                product_data['description'],
+                product_data['image_url'],
+                product_data['location'],
+                product_data['hook'],
+                product_data['cavaties'],
+                product_data['part_wt'],
+                product_data['short_wt'],
+                product_id
+            )
+        )
+        conn.commit()
+        conn.close()
+        st.cache_data.clear()
+        return True
     except Exception as e:
-        st.error(f"Error updating product in Supabase: {e}")
+        st.error(f"Error updating product in SQLite: {e}")
         return False
 
-# --- NEW: Function to get a single product from Supabase ---
+
+# Function to get a single product from SQLite
 def get_product_by_id(product_id: str):
     try:
-        response = supabase.table('products').select('*').eq('id', product_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return dict(row)
         else:
             return None
     except Exception as e:
-        st.error(f"Error fetching product from Supabase: {e}")
+        st.error(f"Error fetching product from SQLite: {e}")
         return None
 
 
-# --- Corrected Helper Function to Resize Image ---
+
+# Helper Function to Resize Image
 def resize_image(image_bytes, size=(200, 200)):
-    """
-    Receives image bytes, resizes the image while maintaining aspect ratio,
-    and returns a PIL Image object.
-    """
     try:
         image = Image.open(io.BytesIO(image_bytes))
-        
         image = image.convert("RGB")
-
         image = image.resize(size)
-
         return image
-        
     except Exception as e:
         st.error(f"Error resizing image: {e}")
         return None
 
 
-# --- Corrected Upload Function ---
-def upload_image_to_supabase(uploaded_file, product_id):
-    """
-    Resizes an uploaded image and uploads it to Supabase Storage.
-    Returns the public URL of the uploaded image.
-    """
+
+# Upload Function: Save image locally and return relative path
+def upload_image_to_local(uploaded_file, product_id):
     if uploaded_file is None:
         return ""
-
+    
+    # Sanitize product_id to prevent path traversal
+    import re
+    safe_product_id = re.sub(r'[^a-zA-Z0-9_-]', '_', str(product_id))
+    if not safe_product_id or len(safe_product_id) > 50:
+        st.error("Invalid product ID for file naming.")
+        return ""
+    
     image_bytes = uploaded_file.getvalue()
-
+    
+    # Validate file size (max 5MB)
+    if len(image_bytes) > 5 * 1024 * 1024:
+        st.error("Image file too large. Maximum size is 5MB.")
+        return ""
+    
     resized_image_obj = resize_image(image_bytes)
-
     if resized_image_obj is None:
         st.error("Failed to resize image, upload cancelled.")
         return ""
-
-    with io.BytesIO() as buffer:
-        # Save the image to the buffer. 'JPEG' is efficient for photos.
-        # Use format='PNG' if you need transparency.
-        resized_image_obj.save(buffer, format="JPEG")
-        image_bytes_to_upload = buffer.getvalue()
-
+    
+    unique_filename = f"{safe_product_id}-{uuid.uuid4()}.jpg"
+    image_path = os.path.join(IMAGES_DIR, unique_filename)
+    
+    # Ensure the path is within the images directory (prevent path traversal)
+    image_path = os.path.abspath(image_path)
+    images_dir_abs = os.path.abspath(IMAGES_DIR)
+    if not image_path.startswith(images_dir_abs):
+        st.error("Invalid file path detected.")
+        return ""
+    
     try:
-        unique_filename = f"{product_id.replace(' ', '_').lower()}-{uuid.uuid4()}.jpg"
-        
-        res = supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
-            path=unique_filename,
-            file=image_bytes_to_upload,
-            file_options={"content-type": "image/jpeg"} # Match the format saved
-        )
-        
-        public_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(unique_filename)
-        
-        st.success(f"Image uploaded successfully!")
-        return public_url
-
+        resized_image_obj.save(image_path, format="JPEG")
+        st.success("Image uploaded successfully!")
+        # Return relative path for use in image_url
+        return os.path.relpath(image_path, os.path.dirname(__file__))
     except Exception as e:
-        st.error(f"Error during Supabase Storage upload: {e}")
+        st.error(f"Error saving image locally: {e}")
         return ""
     
 

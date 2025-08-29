@@ -1,6 +1,7 @@
 import time
 import streamlit as st
-from utils import get_product_by_id, update_product_in_db, upload_image_to_supabase
+import os
+from utils import get_product_by_id, update_product_in_db, upload_image_to_local
 
 st.set_page_config(page_title="Update Product", page_icon="📦", layout="centered")
 
@@ -48,7 +49,21 @@ def update_product_page():
         current_image_url = existing_product.get('image_url', '')
         if current_image_url:
             st.subheader("Current Image")
-            st.image(current_image_url, caption="Current Product Image", width=200)
+            # Convert relative path to absolute path for local images
+            if not current_image_url.startswith(('http://', 'https://')):
+                # It's a local file path - validate it's safe
+                absolute_path = os.path.join(os.path.dirname(__file__), current_image_url)
+                absolute_path = os.path.abspath(absolute_path)
+                images_dir_abs = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/images'))
+                
+                # Ensure path is within images directory (security check)
+                if absolute_path.startswith(images_dir_abs) and os.path.exists(absolute_path):
+                    st.image(absolute_path, caption="Current Product Image", width=200)
+                else:
+                    st.warning("Current image file not found.")
+            else:
+                # It's a URL
+                st.image(current_image_url, caption="Current Product Image", width=200)
         
         uploaded_image = st.file_uploader("Upload New Product Image (Optional - leave empty to keep current image)", 
                                         type=["jpg", "jpeg", "png"])
@@ -61,11 +76,11 @@ def update_product_page():
 
             # If a new image is uploaded, upload it and update the URL
             if uploaded_image is not None:
-                uploaded_url = upload_image_to_supabase(uploaded_image, product_id)
+                uploaded_url = upload_image_to_local(uploaded_image, product_id)
                 if uploaded_url:
                     image_url_to_save = uploaded_url
                 else:
-                    st.warning("Failed to upload new image to Supabase Storage. Keeping the current image.")
+                    st.warning("Failed to upload new image. Keeping the current image.")
             
             updated_product_data = {
                 'mould_no': mould_no,

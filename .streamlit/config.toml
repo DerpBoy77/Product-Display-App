@@ -5,6 +5,9 @@ font = "sans-serif"
 [server]
 enableCORS = false
 enableWebsocketCompression = false
-enableXsrfProtection = false
+enableXsrfProtection = true
 headless = true
 port = 8501
+
+[client]
+toolbarMode = "minimal"

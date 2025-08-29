@@ -1,16 +1,17 @@
 import streamlit as st
 import pandas as pd
+import os
 from utils import load_data, delete_product_from_db
 
 st.set_page_config(page_title="Product List", page_icon="📦", layout="wide")
 
 
-# Function to delete a product and manage state/rerun (NOW from Supabase)
+# Function to delete a product and manage state/rerun
 def delete_product_and_clear_state(product_id_to_delete):
     if delete_product_from_db(product_id_to_delete):
-        st.success(f"Product with ID '{product_id_to_delete}' deleted successfully from Supabase!")
+        st.success(f"Product with ID '{product_id_to_delete}' deleted successfully!")
     else:
-        st.error(f"Product with ID '{product_id_to_delete}' not found or failed to delete from Supabase.")
+        st.error(f"Product with ID '{product_id_to_delete}' not found or failed to delete.")
 
     # IMPORTANT: Clear state variables *before* the rerun
     if 'show_confirm_dialog' in st.session_state:
@@ -65,8 +66,21 @@ def display_products():
                 image_url = row['image_url'] if pd.notna(row['image_url']) and row['image_url'].strip() else None
                 
                 if image_url:
-                    resized_image = image_url #resize_image(image_url, size=(200, 200))
-                    st.image(resized_image, caption=f"ID: {row['id']}")
+                    # Convert relative path to absolute path for local images
+                    if not image_url.startswith(('http://', 'https://')):
+                        # It's a local file path - validate it's safe
+                        absolute_path = os.path.join(os.path.dirname(__file__), image_url)
+                        absolute_path = os.path.abspath(absolute_path)
+                        images_dir_abs = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/images'))
+                        
+                        # Ensure path is within images directory (security check)
+                        if absolute_path.startswith(images_dir_abs) and os.path.exists(absolute_path):
+                            st.image(absolute_path, caption=f"ID: {row['id']}")
+                        else:
+                            st.image("https://placehold.co/200x200?text=Image+Not+Found", caption=f"ID: {row['id']}")
+                    else:
+                        # It's a URL
+                        st.image(image_url, caption=f"ID: {row['id']}")
                 else:
                     # Display a placeholder if no image URL
                     st.image("https://placehold.co/200x200?text=No+Image", caption=f"ID: {row['id']}")

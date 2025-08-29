@@ -7,10 +7,42 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
+venv/
 
-# secret files
+# Database files
+data/products.db
+data/products.db-*
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded images (keep directory structure but not files)
+data/images/*
+!data/images/.gitkeep
+
+# Secret files
 .env
 .streamlit/secrets.toml
 
+# OS files
 *.DS_Store
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# UV lock file (will be regenerated)
+uv.lock

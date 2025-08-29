@@ -8,7 +8,7 @@ def add_product_page():
 
     df = load_data()
 
-    with st.form("new_product_form", clear_on_submit=True):
+    with st.form("new_product_form", clear_on_submit=False):
         st.subheader("Product Details")
 
         product_id = st.text_input("Product ID (Unique Identifier)*", help="e.g., PROD001, ITEM_XYZ").strip()
@@ -24,8 +24,16 @@ def add_product_page():
         uploaded_image = st.file_uploader("Upload Product Image (Optional)", type=["jpg", "jpeg", "png"])
         
         st.markdown("---")
-        submitted = st.form_submit_button("Add Product", type="primary")
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            submitted = st.form_submit_button("Add Product", type="primary", use_container_width=True)
+        with col3:
+            clear_form = st.form_submit_button("Clear Form", type="secondary", use_container_width=True)
 
+        if clear_form:
+            st.info("Form cleared!")
+            st.rerun()
+            
         if submitted:
             # Enhanced validation
             if not product_id:
@@ -66,6 +74,9 @@ def add_product_page():
                 
                 if add_product_to_db(new_product_data):
                     st.success(f"Product '{product_id}' added successfully!")
+                    st.info("Form will be cleared automatically. You can add another product.")
+                    # Clear form by rerunning the page
+                    st.rerun()
                 else:
                     st.error(f"Failed to add product '{product_id}'.")
 

@@ -5,7 +5,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
-COPY data ./data
+COPY data/images/.gitkeep ./data/images/.gitkeep
 COPY .streamlit ./.streamlit
 
 EXPOSE 8501
